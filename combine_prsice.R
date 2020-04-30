@@ -23,7 +23,7 @@ library(lubridate)
 ##  thresholds - p-value columns to select from each PRSice output
 ##  
 ## Usage: combinePRSiceOutput(dir = "/home/ubuntu/PGS_dir/", file_list = c("bmi.txt", "ea.txt"), 
-##                            thresholds = c(5e-8, 1), output_prefix = "ELSA")
+##                            thresholds = c("5e-8", "1"), output_prefix = "ELSA")
 combinePRSiceOutput <- function(dir = "./", 
                                 file_list = list.files(path = dir, pattern = "all.score"), 
                                 thresholds, output_prefix){
@@ -44,6 +44,8 @@ combinePRSiceOutput <- function(dir = "./",
   
   # Write combined output to output directory defined at beginning of code
   write_tsv(combined, path = str_c(dir, today(), "_", output_prefix, "_Combined-PGS.txt")) 
+  
+  return(combined)
 }
 
 
