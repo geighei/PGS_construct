@@ -3,8 +3,8 @@ shopt -s extglob
 
 ##  --------------  File Paths ------------
 # run inputs
-n=700000
-phenotype="bmi"
+n=337334
+phenotype="cigsAll_Current"
 dataset="HRS"
 bim="cleaned_phg000515-v1-HRS-phase123-bestGuessImp"
 
@@ -19,25 +19,19 @@ appended_prscs=$out_prscs_name"_PRScs_estimates_ALL.txt"
 pgs=$out_prscs_name"_PGS"
 
 ##  --------------  Run PRS-CS (estimate effect size) ------------
-# python $prscs/PRScs.py \
-# --ref_dir=$prscs/ldblk_1kg_eur \
-# --bim_prefix=$geno \
-# --sst_file=$sumstat \
-# --n_gwas=$n \
-# --out_dir=$out_prscs_name
+python $prscs/PRScs.py \
+--ref_dir=$prscs/ldblk_1kg_eur \
+--bim_prefix=$geno \
+--sst_file=$sumstat \
+--n_gwas=$n \
+--out_dir=$out_prscs_name
 
 ##  --------------  Append PRS-CS output files ------------
-# find "$out_prscs_name"*chr*.txt | xargs cat > $appended_prscs
+find "$out_prscs_name"*chr*.txt | xargs cat > $appended_prscs
 
 ##  --------------  Run Plink (polygenic risk score) ------------
-# list of p-value ranges to construct PGS for
-echo "all 0 1e20" > "$out_prscs"range_list
-echo "top 0 5e-8" >> "$out_prscs"range_list
-# isolate p-values for plink
-awk '{print $2,$6}' $appended_prscs > "$out_prscs"SNP.pvalue
 
 $plink \
 --bfile $geno \
 --score $appended_prscs 2 4 6 \
---q-score-range "$out_prscs"range_list "$out_prscs"SNP.pvalue \
 --out $pgs

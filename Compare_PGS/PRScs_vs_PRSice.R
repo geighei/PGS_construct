@@ -171,16 +171,23 @@ merged <- inner_join(prsice_clean, prscs_clean,
 normalized <- merged %>%
   mutate_at(vars(contains('SCORE')), ~ (. - mean(.)) / sd(.))
 
+normalized_long <-  normalized %>% 
+  pivot_longer(cols = -c('FID', 'IID'), names_to = 'Score_type', 
+               names_prefix = 'SCORE_', values_to = 'Score')
+
 ## --------------- Comparison charts ----------------
 p <- ggplot(data = normalized, aes(x=SCORE_prsice, y = SCORE_prscs))
 
 # simple scatter
 p + geom_point(aes(alpha=0.1))
 
-# quantile-quantile plot to compare distributions
-ggplot(data = normalized) + 
-  geom_qq(aes(sample = SCORE_prsice), color = 'purple') + 
-  geom_qq(aes(sample = SCORE_prscs), color = 'cyan')
+# quantile-quantile plot to compare both distributions to normal
+ggplot(data = normalized_long, aes(sample=Score, color=Score_type)) + 
+  geom_qq() 
+
+# base qqplot to compare prs-cs to prsice directly
+qqplot(x=normalized$SCORE_prsice, y=normalized$SCORE_prscs, asp=1)
+abline(c(0,1))
 
 ## ------------ Incremental R2 --------------------
 # join with PGS
