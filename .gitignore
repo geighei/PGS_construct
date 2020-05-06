@@ -1,5 +1,7 @@
 # old version control of logs; only need one version of each now
 [0-9]*.log
+*.out
+lib[0-9]*/
 
 # archive folder for old versions
 archive/

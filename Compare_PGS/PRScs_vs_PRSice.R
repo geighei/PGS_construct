@@ -6,7 +6,8 @@
 ###### 
 ###### Author: Jeremy Vollen
 ######
-###### Description: 
+###### Description: Compare PRS-CS to PRSice results (LDpred2 to be added later)
+###### for each inputted phenotype, comparing graphically as well as in terms of R2
 ###### 
 ##################################
 
@@ -21,14 +22,15 @@ source("/Volumes/g_econ_department$/econ/biroli/geighei/code/rGSES_code/00_rGSES
 
 # Directories
 DATASET <- 'HRS'
-PHENO <- 'bmi'
-PHENO_TITLE <- 'BMI'
+PHENO <- list(list(name = 'bmi', label = 'BMI'),
+              list(name = 'maxCPD', label = 'Cigs per day'),
+              list(name = 'smokeInit', label = 'Smoking initiation'))
 PGS_DIR <- str_c('/Volumes/g_econ_department$/econ/biroli/geighei/data/', 
                  DATASET, '/PGS/')
 setwd('/Volumes/g_econ_department$/econ/biroli/geighei/code/PGS_construct/Compare_PGS/')
 
 ## --------------- Function ----------------
-incr.r <- function(data,  pheno_names, traits, data2, control , data_name ) {
+incr.r.edited <- function(data,  pheno_names, traits, data2, control , data_name ) {
   # Age must be called ageYears
   newData <- subset.data.frame( data2)#, select = c(control, "SESfactorHigh"))
   newData <- newData[!(is.na(newData$SESfactorHigh)),] # Keep only those with SESfactorHigh info
@@ -40,13 +42,7 @@ incr.r <- function(data,  pheno_names, traits, data2, control , data_name ) {
   newData <- cbind(data , newData)
   newData$ageYears2 <- sqrt(newData$ageYears)
   newData$ageMale <- newData$ageYears * newData$male 
-  
-  # Former Smoker
-  # newData$formerSmoker  <- as.numeric(newData$formerSmoker)
-  # newData$formerSmoker[newData$formerSmoker==0] <- 0
-  # newData$formerSmoker[newData$formerSmoker==1] <- 1
-  
-  
+
   # Matrix for incremental R2
   lm_matrix = matrix(nrow=length(traits), ncol=3)
   dimnames(lm_matrix) = list( traits,
@@ -74,6 +70,9 @@ incr.r <- function(data,  pheno_names, traits, data2, control , data_name ) {
       lm_pgs8 <- lm(  x , data = newData)
       lm_matrix[i, ] <- c( summary(lm_trait)$r.squared, summary(lm_pgs1)$r.squared , summary(lm_pgs8)$r.squared )
     }
+    if(pgs_8[i]=="missing"){
+      lm_matrix[i,3] <- "NA"
+    }
   }
   lm_table <- as.data.frame(lm_matrix, stringsAsFactors = FALSE) 
   colnames(lm_table)  <-  c("r.ols", "r.ols1", "r.ols8")
@@ -84,24 +83,18 @@ incr.r <- function(data,  pheno_names, traits, data2, control , data_name ) {
   lm_table$r.ols <- as.numeric(lm_table$r.ols)
   lm_table$increment1 <- as.numeric(lm_table$increment1)
   lm_table$increment8 <- as.numeric(lm_table$increment8)
-  # Calculate inclremental R2
+  # Calculate incremental R2
   
   for(i in 1:length(traits_var)){
-    if (is.na(lm_table$r.ols1[i]) == TRUE | is.na(lm_table$r.ols8[i]) == TRUE) {
-      lm_table$increment1[i] <- "NA" 
-      lm_table$increment8[i] <- "NA" 
-    }
-    else {
       lm_table$increment1 <-   (lm_table$r.ols1 - lm_table$r.ols) * 100
       lm_table$increment8 <-   (lm_table$r.ols8 - lm_table$r.ols) * 100
-    }
   }
   lm_table$increment1 <- as.numeric(lm_table$increment1)
   lm_table$increment8 <- as.numeric(lm_table$increment8)
   lm_table <- format(lm_table, scientific = FALSE, digits = 2)
   
   # Output
-  pdf(paste("incrementalR2", data_name, ".pdf",sep=""), 20,15)
+  pdf(paste("output/incrementalR2", data_name, ".pdf",sep=""), 20,15)
   
   colnames(lm_table)  <- c("R squared OLS", "R squared OLS PGS1", "R squared OLS PGS5e8", "Incremental R2 PGS1  (%)", "Incremental R2 PGS5e8 (%)")
   table <- tableGrob(lm_table)
@@ -124,7 +117,6 @@ incr.r <- function(data,  pheno_names, traits, data2, control , data_name ) {
   grid.draw(table)
   invisible(dev.off())
   
-  
   # SAVE TABLE
   kable(lm_table, "html",
         col.names = c("R squared OLS", "R squared OLS PGS1", "R squared OLS PGS5e8", 
@@ -134,7 +126,7 @@ incr.r <- function(data,  pheno_names, traits, data2, control , data_name ) {
     footnote(general = data_name,
              general_title = "Source: ",
              footnote_as_chunk = T) %>%
-    save_kable(paste("incrementalR2_", data_name,".pdf",sep=""))
+    save_kable(paste("output/incrementalR2_", data_name,".pdf",sep=""))
   
   # PRINT TABLE
   kable(lm_table,
@@ -145,64 +137,115 @@ incr.r <- function(data,  pheno_names, traits, data2, control , data_name ) {
     footnote(general = data_name,
              general_title = "Source: ",
              footnote_as_chunk = T) 
+}
+
+comparisonPlots <- function(df, name,
+                            out = str_c('output/', name, '_charts.pdf')){
+  # simple scatter
+  p_scatter <- ggplot(data = df, aes(x=prsice, y = prscs)) + 
+    geom_point(aes(alpha=0.1)) + ggtitle('PGS scatter plot comparison')
   
+  # quantile-quantile plot to compare both distributions to normal
+  p_qq <- ggplot(data = df %>% gather(key = Score_type, value = Score, -c(FID, IID)), 
+           aes(sample=Score, color=Score_type)) + 
+    geom_qq() + ggtitle('PGS qq-plot (vs. standard normal) comparison')
+  
+  # attempt at rank-rank plots
+  percentiles <- df %>%
+    mutate(percentile = ntile(prsice, n=100)) %>%
+    group_by(percentile) %>%
+    summarise_at(vars(starts_with('prs')), mean)
+  # PRScs percentile avgs vs PRSice percentile avgs using 100 percentiles in PRSice
+  p_percentiles <- ggplot(percentiles, aes(x=prsice, y=prscs)) +
+    geom_point() + geom_abline(slope=1, intercept=0) +
+    ggtitle('Average percentile score (percentiles using PRSice ranking)')
+  p_percentiles_overlay <- 
+    ggplot(percentiles %>% 
+             gather(key = Score_type, value = Score, -percentile),
+           aes(x = percentile, y = Score, color = Score_type)) + 
+    geom_point() + ggtitle('Average percentile score (percentiles using PRSice ranking)')
+  
+  # now let's see what's happening beneath the surface of the above plots
+  percentiles2 <- df %>%
+    mutate(rank_prsice = cume_dist(prsice),
+           rank_prscs = cume_dist(prscs))
+  p_rankrank <- ggplot(percentiles2,
+                       aes(x = rank_prsice, y = rank_prscs, alpha=0.1)) + 
+    geom_point() + geom_abline(slope = 1, intercept = 0) + 
+    ggtitle('Rank-rank plot PGS comparison')
+  
+  pdf(out, onefile = T, width = 7, height = 5)
+  print(p_scatter)
+  print(p_qq)
+  print(p_percentiles)
+  print(p_percentiles_overlay)
+  print(p_rankrank)
+  plot.new()
+  text(.5, .5, paste("R2 of regression of prscs score against prsice score is",
+                     summary(lm(df$prscs ~ df$prsice))$r.squared))
+  dev.off()
 }
 
 ## --------------- Read Data ----------------
 # pgs
-prsice <- read_table2(str_c(PGS_DIR, 'PRSice/', DATASET, '_', PHENO, '.all.score'))
-prscs <- read_table2(str_c(PGS_DIR, 'PRScs/', PHENO, '/', PHENO, '_PGS.profile'))
+prsice <- 
+  map(PHENO, 
+      ~ read_table2(str_c(PGS_DIR, 'PRSice/', 
+                          DATASET, '_', .[["name"]], '.all.score')) %>%
+        mutate(prsice = `1`)) %>% 
+  set_names(map(PHENO,1))
+
+prscs <- 
+  map(PHENO,
+      ~ read_table2(str_c(PGS_DIR, 'PRScs/', 
+                          .[["name"]], '/', .[["name"]], '_PGS.profile')) %>%
+        mutate(prscs = SCORE)) %>%
+  set_names(map(PHENO,1))
 
 # data necessary for incremental R2 calculation
-hrs_new <- read_dta("/Volumes/g_econ_department$/econ/biroli/geighei/data/HRS/phenoclean/HRS_GxSES_analysis.dta")
-
+hrs_new <- read_dta("/Volumes/g_econ_department$/econ/biroli/geighei/data/HRS/phenoclean/HRS_GxSES_analysis.dta") %>%
+  # shouldn't be necessary after Pia cleans up names
+   rename(maxCPD = cigsAll_Current,
+         smokeInit = cesSmoke_GSCAN)
 ## --------------- Process Data ----------------
 # Clean data
 prsice_clean <- prsice %>%
-  select(FID, IID, SCORE = `1`)
+  map(~ select(., FID, IID, contains("prsice")))
 prscs_clean <- prscs %>% 
-  select(FID, IID, SCORE)
+  map(~ select(., FID, IID, contains("prscs")))
 
 # Merge data
-merged <- inner_join(prsice_clean, prscs_clean, 
-                     by = c('FID', 'IID'), suffix = c('_prsice', '_prscs'))
+merged <- map2(prsice_clean, prscs_clean,
+               ~ inner_join(.x, .y, by = c('FID', 'IID')))
 
 # Normalize polygenic scores to mean 0 standard dev 1
 normalized <- merged %>%
-  mutate_at(vars(contains('SCORE')), ~ (. - mean(.)) / sd(.))
-
-normalized_long <-  normalized %>% 
-  pivot_longer(cols = -c('FID', 'IID'), names_to = 'Score_type', 
-               names_prefix = 'SCORE_', values_to = 'Score')
+  map(~ mutate_at(., vars(contains('prs')), ~ (. - mean(.)) / sd(.)))
 
 ## --------------- Comparison charts ----------------
-p <- ggplot(data = normalized, aes(x=SCORE_prsice, y = SCORE_prscs))
 
-# simple scatter
-p + geom_point(aes(alpha=0.1))
-
-# quantile-quantile plot to compare both distributions to normal
-ggplot(data = normalized_long, aes(sample=Score, color=Score_type)) + 
-  geom_qq() 
-
-# base qqplot to compare prs-cs to prsice directly
-qqplot(x=normalized$SCORE_prsice, y=normalized$SCORE_prscs, asp=1)
-abline(c(0,1))
+# for each phenotype, call comparison plots which will create a pdf
+walk(PHENO, ~ comparisonPlots(df=normalized[[.[["name"]]]], name=.[["name"]]))
 
 ## ------------ Incremental R2 --------------------
+# create master list of scores for all phenotypes and engines
+full <- 
+  map2(normalized, names(normalized), 
+       function(x,y)
+         rename_at(x, vars(starts_with("prs")), ~ paste0(., "_", y))) %>%
+  reduce(inner_join, by = c('FID', 'IID'))
+
 # join with PGS
 all_data <- hrs_new %>%
-  left_join(normalized, by = c("iid" = "IID")) %>%
-  rename_at(vars(contains("SCORE")), 
-            ~ .)
+  left_join(full, by = c("iid" = "IID"))
 
-all_data <- subset(all_data, select = c(
+all_data <- select(all_data,
   HHID, PN, hhipn,         # highIndex based on 0-4
-  SESindexHigh,                                      # highIndex based on 0-4
-  SESIndex,                                          # SESIndex based on 0-4
-  SESfactor,                                         # new factor score (old name SESFChatB)
-  SESfactorHigh,                                     # highIndex based on new factor score
-  SCORE_prsice, SCORE_prscs))             # Education 
+  SESindexHigh,            # highIndex based on 0-4
+  SESIndex,                # SESIndex based on 0-4
+  SESfactor,               # new factor score (old name SESFChatB)
+  SESfactorHigh,           # highIndex based on new factor score
+  starts_with("prs"))
 
 # Add high Factor
 all_data$SESfactorHigh  <- as.numeric(all_data$SESfactorHigh)
@@ -212,20 +255,20 @@ all_data$SESfactorHigh[all_data$SESfactorHigh==2] <- 1
 # Add high Index
 all_data$SESindexHigh  <- as.numeric(all_data$SESindexHigh)
 all_data$SESindexHigh[all_data$SESindexHigh==1] <- 0
-all_data$SESindexHigh[all_data$SESindexHigh==2] <- 1
+all_data$SESindexHigh[all_data$SESindexHih==2] <- 1
 
 all_data <- all_data[!(is.na(all_data$SESfactorHigh)),] # Keep only those with SESfactorHigh info
 all_data$missing <- 0
 
-traits <- c(paste('PRSice', PHENO_TITLE), paste('PRS-CS Smoking Cessation', PHENO_TITLE))
+traits <- map(PHENO, ~ c(paste('PRSice', .[[2]]), paste('PRS-CS', .[[2]]))) %>%
+  flatten_chr()
 
 #     PGS 10-8,                PGS 1,           Phenotype
-var_names_both   <- c(  
-  "missing" ,            "SCORE_prsice" ,            PHENO ,
-  "missing" ,            "SCORE_prscs"  ,            PHENO
-  )
+var_names_both <- map(PHENO, ~ c("missing", str_c('prsice_', .[[1]]), .[[1]],
+                                 "missing", str_c('prscs_', .[[1]]), .[[1]])) %>%
+  flatten_chr()
 
 controls <-  c( "ageYears", "male" , "ev1" , "ev2" ,"ev3" , "ev4" , "ev5" , "ev6" , "ev7" , "ev8" , "ev9" , "ev10" )
 
-incr.r(data = all_data,  pheno_names = var_names_both , traits = traits, data2 = hrs_new, 
-       control = controls, data_name = DATASET)
+incr.r.edited(data = all_data,  pheno_names = var_names_both , traits = traits, 
+              data2 = hrs_new, control = controls, data_name = DATASET)
