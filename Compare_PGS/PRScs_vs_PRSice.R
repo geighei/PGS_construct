@@ -18,19 +18,24 @@ gc()
 library(tidyverse)
 library(magrittr)
 library(haven)
+# necessary to load all packages necessary for incr.r function
 source("/Volumes/g_econ_department$/econ/biroli/geighei/code/rGSES_code/00_rGSES_functions.R")
 
 # Directories
 DATASET <- 'HRS'
+# nested list is used to vectorize script over phenotypes
 PHENO <- list(list(name = 'bmi', label = 'BMI'),
               list(name = 'maxCPD', label = 'Cigs per day'),
               list(name = 'smokeInit', label = 'Smoking initiation'))
-PGS_DIR <- str_c('/Volumes/g_econ_department$/econ/biroli/geighei/data/', 
-                 DATASET, '/PGS/')
+PGS_DIR <- str_c('/Volumes/g_econ_department$/econ/biroli/geighei/data/',DATASET,'/PGS/')
 setwd('/Volumes/g_econ_department$/econ/biroli/geighei/code/PGS_construct/Compare_PGS/')
 
 ## --------------- Function ----------------
-incr.r.edited <- function(data,  pheno_names, traits, data2, control , data_name ) {
+# Edited version incr.r from 00_rGSES_functions.R
+# edits: 
+# handling of "missing" so that one PGS can be "missing" and the other still works
+# references to "formerSmoker", deleted some other unnecessary parts
+incr.r.edited <- function(data,  pheno_names, traits, data2, control, data_name) {
   # Age must be called ageYears
   newData <- subset.data.frame( data2)#, select = c(control, "SESfactorHigh"))
   newData <- newData[!(is.na(newData$SESfactorHigh)),] # Keep only those with SESfactorHigh info
@@ -139,6 +144,12 @@ incr.r.edited <- function(data,  pheno_names, traits, data2, control , data_name
              footnote_as_chunk = T) 
 }
 
+# Purpose: generate a pdf with all charts comparing different PGS engines for a 
+# particular phenotype
+# Arguments: 
+#   df - data frame containing column for each engine's PGS, named after engine
+#   name - name of phenotype 
+#   out - where to save pdf, default value based on name provided 
 comparisonPlots <- function(df, name,
                             out = str_c('output/', name, '_charts.pdf')){
   # simple scatter
@@ -158,12 +169,14 @@ comparisonPlots <- function(df, name,
   # PRScs percentile avgs vs PRSice percentile avgs using 100 percentiles in PRSice
   p_percentiles <- ggplot(percentiles, aes(x=prsice, y=prscs)) +
     geom_point() + geom_abline(slope=1, intercept=0) +
-    ggtitle('Average percentile score (percentiles using PRSice ranking)')
+    ggtitle('Average percentile score (percentiles using PRSice ranking)') + 
+    xlab('PRSice average score') + ylab('PRS-CS average score')
   p_percentiles_overlay <- 
     ggplot(percentiles %>% 
              gather(key = Score_type, value = Score, -percentile),
            aes(x = percentile, y = Score, color = Score_type)) + 
-    geom_point() + ggtitle('Average percentile score (percentiles using PRSice ranking)')
+    geom_point() + ggtitle('Average percentile score (percentiles using PRSice ranking)') + 
+    xlab('PRSice percentile') + ylab('Average Score')
   
   # now let's see what's happening beneath the surface of the above plots
   percentiles2 <- df %>%
@@ -172,29 +185,45 @@ comparisonPlots <- function(df, name,
   p_rankrank <- ggplot(percentiles2,
                        aes(x = rank_prsice, y = rank_prscs, alpha=0.1)) + 
     geom_point() + geom_abline(slope = 1, intercept = 0) + 
+    xlab('PRSice percentile') + ylab('PRS-CS percentile')
     ggtitle('Rank-rank plot PGS comparison')
   
+  # tertile heatmap
+  tertiles <- df %>% 
+    mutate(prsice_tertile = ntile(prsice, n = 3),
+           prscs_tertile = ntile(prscs, n = 3)) %>%
+    group_by(prsice_tertile, prscs_tertile) %>%
+    summarise(count = n())
+  p_tertiles_heatmap <- ggplot(tertiles, aes(x=prsice_tertile, y=prscs_tertile)) + 
+    geom_raster(aes(fill=count)) + geom_text(aes(label=count), color='white') + 
+    scale_fill_gradient(limits = c(0,3600)) +
+    ggtitle(str_c('PGS tertile overlap comparison (n = ', nrow(df), ')'))
+  
+  # open PDF and print all plots to it, then close
   pdf(out, onefile = T, width = 7, height = 5)
   print(p_scatter)
   print(p_qq)
-  print(p_percentiles)
   print(p_percentiles_overlay)
+  print(p_percentiles)
   print(p_rankrank)
+  print(p_tertiles_heatmap)
   plot.new()
-  text(.5, .5, paste("R2 of regression of prscs score against prsice score is",
-                     summary(lm(df$prscs ~ df$prsice))$r.squared))
+  text(.5, .5, paste("R2 of regression of PRS-CS score against PRSice score is",
+                     format(summary(lm(df$prscs ~ df$prsice))$r.squared, digits=5)))
   dev.off()
 }
 
 ## --------------- Read Data ----------------
-# pgs
+# mapping over all phenotypes, read PGS, choose and rename PGS column
 prsice <- 
   map(PHENO, 
       ~ read_table2(str_c(PGS_DIR, 'PRSice/', 
                           DATASET, '_', .[["name"]], '.all.score')) %>%
         mutate(prsice = `1`)) %>% 
+  # and set names of list items to reflect phenotype names
   set_names(map(PHENO,1))
 
+# PRS-CS mirrors PRSice in this and most following operations
 prscs <- 
   map(PHENO,
       ~ read_table2(str_c(PGS_DIR, 'PRScs/', 
@@ -207,14 +236,15 @@ hrs_new <- read_dta("/Volumes/g_econ_department$/econ/biroli/geighei/data/HRS/ph
   # shouldn't be necessary after Pia cleans up names
    rename(maxCPD = cigsAll_Current,
          smokeInit = cesSmoke_GSCAN)
+
 ## --------------- Process Data ----------------
-# Clean data
+# drop all unnecessary columns (keep only ID and PGSs)
 prsice_clean <- prsice %>%
   map(~ select(., FID, IID, contains("prsice")))
 prscs_clean <- prscs %>% 
   map(~ select(., FID, IID, contains("prscs")))
 
-# Merge data
+# Merge all PGS engines together so we have only one list
 merged <- map2(prsice_clean, prscs_clean,
                ~ inner_join(.x, .y, by = c('FID', 'IID')))
 
@@ -232,10 +262,11 @@ walk(PHENO, ~ comparisonPlots(df=normalized[[.[["name"]]]], name=.[["name"]]))
 full <- 
   map2(normalized, names(normalized), 
        function(x,y)
+         # rename PGS columns to mention their phenotype
          rename_at(x, vars(starts_with("prs")), ~ paste0(., "_", y))) %>%
   reduce(inner_join, by = c('FID', 'IID'))
 
-# join with PGS
+# join with HRS with PGS
 all_data <- hrs_new %>%
   left_join(full, by = c("iid" = "IID"))
 
@@ -260,10 +291,13 @@ all_data$SESindexHigh[all_data$SESindexHih==2] <- 1
 all_data <- all_data[!(is.na(all_data$SESfactorHigh)),] # Keep only those with SESfactorHigh info
 all_data$missing <- 0
 
+# rownames of table; one for each phenotype-engine pair
 traits <- map(PHENO, ~ c(paste('PRSice', .[[2]]), paste('PRS-CS', .[[2]]))) %>%
+  # flatten to one vector
   flatten_chr()
 
-#     PGS 10-8,                PGS 1,           Phenotype
+#all PGS8 missing, name of PGS1 column, phenotype name;; for each phenotype
+#                               PGS 10-8,    PGS 1,       Phenotype
 var_names_both <- map(PHENO, ~ c("missing", str_c('prsice_', .[[1]]), .[[1]],
                                  "missing", str_c('prscs_', .[[1]]), .[[1]])) %>%
   flatten_chr()
