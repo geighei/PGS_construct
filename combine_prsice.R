@@ -26,7 +26,7 @@ library(lubridate)
 ##                            thresholds = c("5e-8", "1"), output_prefix = "ELSA")
 combinePRSiceOutput <- function(dir = "./", 
                                 file_list = list.files(path = dir, pattern = "all.score"), 
-                                thresholds, output_prefix){
+                                thresholds, output_prefix, date_label = T){
   # extract phenotype/trait string for each from provided file list
   phenotypes <- map(file_list, 
                     function(x) 
@@ -43,7 +43,8 @@ combinePRSiceOutput <- function(dir = "./",
     reduce(full_join, by = c("FID", "IID"))
   
   # Write combined output to output directory defined at beginning of code
-  write_tsv(combined, path = str_c(dir, today(), "_", output_prefix, "_Combined-PGS.txt")) 
+  write_tsv(combined, path = str_c(dir, ifelse(date_label, str_c(today(), "_"), ""),
+                                   output_prefix, "_Combined-PGS.txt")) 
   
   return(combined)
 }
