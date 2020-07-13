@@ -40,6 +40,8 @@ option_list = list(
               help="Path to sumstats, e.g. ~/biroli/geighei/data/GWAS_sumstats/clean/rGE/", metavar="character"),
   make_option(c("--gwas_names"), type="character", default=NULL, 
               help="Sumstats files separated by comma, e.g. bmi.sumstats,ea.txt", metavar="character"),
+  make_option(c("--gwas_pattern"), type="character", default=".sumstats",
+              help="Regex pattern to match sumstats to generate PGS for. Defaults to all with .sumstats suffix.", metavar="character"),
   make_option(c("--out_dir"), type="character", default=NULL, 
               help="Path for PRS output, e.g. ~/biroli/geighei/data/ELSA/PGS/", metavar="character"),
   make_option(c("--combine"), action="store_true", type="character", default=FALSE, 
@@ -72,8 +74,9 @@ if (is.null(opt$out_dir)) {
 # If GWAS names is null, we list all files ending in '.sumstats'; if not null, 
 # we split the string on commas or semicolons and form in list of file names
 if (is.null(opt$gwas_names)) {
-  writeLines("Use --gwas_names to specify summary statistic files to run PRSice on, separated by commas or semicolons without a space. By default, we use all files in gwas_dir with .sumstats extension.")
-  gwas_names <- list.files(opt$gwas_dir, pattern = ".sumstats")
+  writeLines("Argument --gwas_names, used to specify summary statistic files to run PRSice on, not detected. 
+             By default, we use --gwas_pattern argument to match all sumstats matching pattern, which defaults to all files with .sumstats ending if not provided.")
+  gwas_names <- list.files(opt$gwas_dir, pattern = opt$gwas_pattern)
 } else {
   gwas_names <- str_split(opt$gwas_names, pattern = ",|;")[[1]]
 }
