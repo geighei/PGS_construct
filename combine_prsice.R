@@ -23,17 +23,22 @@ library(lubridate)
 ##  thresholds - p-value columns to select from each PRSice output
 ##  
 ## Usage: combinePRSiceOutput(dir = "/home/ubuntu/PGS_dir/", file_list = c("bmi.txt", "ea.txt"), 
-##                            thresholds = c("5e-8", "1"), output_prefix = "ELSA")
+##                            thresholds = c("5e-08", "1"), output_prefix = "ELSA")
 combinePRSiceOutput <- function(dir = "./", 
                                 file_list = list.files(path = dir, pattern = "all.score"), 
-                                thresholds, output_prefix, date_label = T){
+                                thresholds, output_prefix, date_label = T, remove_from_name = "a^"){
   # extract phenotype/trait string for each from provided file list
-  phenotypes <- map(file_list, 
-                    function(x) 
-                      tail(str_split(
-                        str_split(x, pattern = "\\.")[[1]][1],
-                        pattern = "_")[[1]], n=1))
-  
+  # phenotypes <- map(file_list, 
+  #                   function(x) 
+  #                     tail(str_split(
+  #                       str_split(x, pattern = "\\.")[[1]][1],
+  #                       pattern = "_")[[1]], n=1))
+  phenotypes <- map(file_list,
+                    function(x)
+                        str_replace_all(
+                          str_replace_all(x, pattern = ".all.score", ""),
+                          pattern = remove_from_name, ""))
+
   # read and clean PRSice output for each file specified by user
   all_outputs <- map2(file_list, phenotypes, 
                       ~ cleanPRSiceOutput(str_c(dir, .x), .y, thresholds)) 
@@ -59,7 +64,7 @@ cleanPRSiceOutput <- function(file, gwas_prefix, thresholds){
   prs_clean <- prs_output %>%
     select(FID, IID, one_of(thresholds))
   
-  # For p-value columns, change name to be of form {prefix}_pval_{threshold}
+  # For p-value columns, change name to be of form {prefix}_{threshold}
   names(prs_clean) <- map(names(prs_clean), 
                           function(x) 
                             if(x %in% c("FID", "IID")){x}
