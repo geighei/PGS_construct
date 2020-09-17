@@ -3,14 +3,14 @@ shopt -s extglob
 
 ##  --------------  File Paths ------------
 # run inputs
-n=337334
-phenotype="cigsAll_Current"
+n=575705
+phenotype="smokeInit"
 dataset="HRS"
 bim="cleaned_phg000515-v1-HRS-phase123-bestGuessImp"
 
 # file paths
-prscs="/home/ubuntu/plink/PRScs"
-plink="/home/ubuntu/plink/plink/plink"
+prscs="/home/ubuntu/tools/PRScs"
+plink="/home/ubuntu/tools/plink/plink"
 geno="/home/ubuntu/biroli/geighei/data/$dataset/genomeclean/$bim"
 sumstat="/home/ubuntu/biroli/geighei/data/GWAS_sumstats/clean/rGE/$phenotype.sumstats"
 out_prscs="/home/ubuntu/biroli/geighei/data/$dataset/PGS/PRScs/$phenotype/"
