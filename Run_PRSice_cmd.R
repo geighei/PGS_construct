@@ -16,7 +16,6 @@ rm(list = ls())
 gc()
 library(tidyverse)
 library(lubridate)
-library(rstudioapi)
 library(optparse)
 
 ## Import combining functions
@@ -31,7 +30,7 @@ pval_thresholds <- as.character(c(5e-8, 1))
 # Read Command-line arguments
 option_list = list(
   make_option(c("--prsice"), type="character", default=NULL, 
-              help="PRSice path, e.g. ~/plink/PRSice-2/", metavar="character"),
+              help="PRSice path, e.g. ~/tools/PRSice-2/", metavar="character"),
   make_option(c("--geno"), type="character", default=NULL, 
               help="Cleaned genome data, e.g. ~/biroli/geighei/data/ELSA/genomeclean/cleaned_ega-box-163_ForwardStrand_excREL", metavar="character"),
   make_option(c("--geno_name"), type="character", default="", 
@@ -121,14 +120,20 @@ if(current_dir_vec[[2]] == "Volumes"){
 # Consider using mapply or map2 if we end up looping over both GWAS and target data
 i <- 0
 output <- list()
+#print(gwas_names)
 # Command line call to PRSice
 for(gwas_name in gwas_names){
   i <- i + 1
-  gwas_prefix <- str_split(gwas_name, pattern = "\\.")[[1]][1]
+  # split on "/" so we can isolate file name by taking last element
+  gwas_path_vec <- str_split(gwas_name, pattern = "/")[[1]]
+  # take file name and delete possible extension to get prefix
+  gwas_prefix <- str_replace_all(gwas_path_vec[length(gwas_path_vec)], 
+                                 "\\.(sumstats|txt|csv|tsv)", "")
   output_file_name <- str_c(opt$geno_name, gwas_prefix, sep="_")
+  print(output_file_name)
   cmd <- paste("Rscript", str_c(opt$prsice, "PRSice.R"),
                # point to directory to write PRS output
-               "--dir", opt$out_dir,
+               #"--dir", opt$out_dir,
                # point to PRSice executable
                "--prsice", str_c(opt$prsice, prsice_exe),
                # point to summary statistic to use (we are iterating over a list of these)
