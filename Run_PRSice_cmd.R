@@ -45,7 +45,14 @@ option_list = list(
   make_option(c("--out_dir"), type="character", default=NULL, 
               help="Path for PRS output, e.g. ~/biroli/geighei/data/ELSA/PGS/", metavar="character"),
   make_option(c("--combine"), action="store_true", type="character", default=FALSE, 
-              help="Use this flag if you want individual phenotype results combined into one file. Be careful this doesn't overwrite an existing file."))
+              help="Use this flag if you want individual phenotype results combined into one file. Be careful this doesn't overwrite an existing file."),
+  make_option(c("--snp"), type="character", default="SNP", help="Name of SNP column in sumstat. Default: 'SNP'.", metavar="character"),
+  make_option(c("--chr"), type="character", default="CHR", help="Name of chromosome column in sumstat. Default: 'CHR'.", metavar="character"),
+  make_option(c("--bp"), type="character", default="POS", help="Name of position column in sumstat. Default: 'POS'.", metavar="character"),
+  make_option(c("--A1"), type="character", default="A1", help="Name of effect allele column in sumstat. Default: 'A1'.", metavar="character"),
+  make_option(c("--A2"), type="character", default="A2", help="Name of other allele column in sumstat. Default: 'A2'.", metavar="character"),
+  make_option(c("--stat"), type="character", default="BETA", help="Name of effect size column in sumstat. Default: 'BETA'.", metavar="character"),
+  make_option(c("--pvalue"), type="character", default="P", help="Name of p-value column in sumstat. Default: 'P'.", metavar="character"))
 opt_parser = OptionParser(option_list=option_list)
 opt = parse_args(opt_parser)
 
@@ -76,7 +83,8 @@ if (is.null(opt$out_dir)) {
 if (is.null(opt$gwas_names)) {
   writeLines("Argument --gwas_names, used to specify summary statistic files to run PRSice on, not detected. 
              By default, we use --gwas_pattern argument to match all sumstats matching pattern, which defaults to all files with .sumstats ending if not provided.")
-  gwas_names <- list.files(opt$gwas_dir, pattern = opt$gwas_pattern)
+  # We find all files in the given GWAS directory recursively and filter on those matching the pattern given or default '.sumstats'
+  gwas_names <- list.files(opt$gwas_dir, pattern = opt$gwas_pattern, recursive = TRUE)
 } else {
   gwas_names <- str_split(opt$gwas_names, pattern = ",|;")[[1]]
 }
@@ -126,7 +134,8 @@ for(gwas_name in gwas_names){
                # point to summary statistic to use (we are iterating over a list of these)
                "--base", str_c(opt$gwas_dir, gwas_name),
                # point to column names corresponding to each flag, this should be standardized to fit the below values
-               "--snp SNP --chr CHR --bp POS --A1 A1 --A2 A2 --stat BETA --pvalue P",
+               "--snp", opt$snp, "--chr", opt$chr, "--bp", opt$bp, "--A1", opt$A1, "--A2", opt$A2, 
+               "--stat", opt$stat, "--pvalue", opt$pvalue,
                # point to reference/target genome data, post-QC
                "--target", opt$geno,
                # --beta denotes continuous phenotype, --no-regress is necessary since we don't supply phenotype
