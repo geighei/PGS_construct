@@ -18,9 +18,10 @@ library(tidyverse)
 library(lubridate)
 library(optparse)
 
-## Import combining functions
+## Import combining functions: creates one table out of all of the different phenotype-PGS. 
 source("combine_prsice.R")
 
+## Pick the p-value threshold that you need for your PGS. It's an input for the combine_prsice.R script. Must be selected from the list of pvalues in --bar-levels
 ## Define inputs; these might be user-inputted in the future
 pval_thresholds <- as.character(c(5e-8, 1))
 
@@ -54,6 +55,9 @@ option_list = list(
   make_option(c("--pvalue"), type="character", default="P", help="Name of p-value column in sumstat. Default: 'P'.", metavar="character"))
 opt_parser = OptionParser(option_list=option_list)
 opt = parse_args(opt_parser)
+
+# attempt to write inputted command to log
+writeLines(str_c(opt))
 
 # Check for missing arguments and return error statement
 if (is.null(opt$prsice)) {
@@ -131,13 +135,15 @@ for(gwas_name in gwas_names){
                                  "\\.(sumstats|txt|csv|tsv)", "")
   output_file_name <- str_c(opt$geno_name, gwas_prefix, sep="_")
   print(output_file_name)
+  
+  # Calling PRSice and giving it the flags that we decided above
   cmd <- paste("Rscript", str_c(opt$prsice, "PRSice.R"),
                # point to directory to write PRS output
                #"--dir", opt$out_dir,
                # point to PRSice executable
                "--prsice", str_c(opt$prsice, prsice_exe),
                # point to summary statistic to use (we are iterating over a list of these)
-               "--base", str_c(opt$gwas_dir, gwas_name),
+               "--base", str_c(opt$gwas_dir, "/", gwas_name),
                # point to column names corresponding to each flag, this should be standardized to fit the below values
                "--snp", opt$snp, "--chr", opt$chr, "--bp", opt$bp, "--A1", opt$A1, "--A2", opt$A2, 
                "--stat", opt$stat, "--pvalue", opt$pvalue,

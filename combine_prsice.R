@@ -28,11 +28,6 @@ combinePRSiceOutput <- function(dir = "./",
                                 file_list = list.files(path = dir, pattern = "all.score"), 
                                 thresholds, output_prefix, date_label = T, remove_from_name = "a^"){
   # extract phenotype/trait string for each from provided file list
-  # phenotypes <- map(file_list, 
-  #                   function(x) 
-  #                     tail(str_split(
-  #                       str_split(x, pattern = "\\.")[[1]][1],
-  #                       pattern = "_")[[1]], n=1))
   phenotypes <- map(file_list,
                     function(x)
                         str_replace_all(
@@ -62,7 +57,7 @@ cleanPRSiceOutput <- function(file, gwas_prefix, thresholds){
   
   # Select only the PRS for the p-value thresholds we care about
   prs_clean <- prs_output %>%
-    select(FID, IID, one_of(thresholds))
+    dplyr::select(FID, IID, one_of(thresholds))
   
   # For p-value columns, change name to be of form {prefix}_{threshold}
   names(prs_clean) <- map(names(prs_clean), 
