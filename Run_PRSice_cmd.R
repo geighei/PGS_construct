@@ -27,6 +27,8 @@ pval_thresholds <- as.character(c(5e-8, 1))
 
 
 ## ----------------------------- Import Libraries, Macros, Sources -------------------------------
+# Example call (example is for producing all split-sample PGS in ELSA
+# nohup Rscript Run_PRSice_cmd.R --prsice ~/tools/PRSice-2/ --geno ~/biroli/geighei/data/ELSA/genomeclean/cleaned_ega-box-163_ForwardStrand_excREL --geno_name ELSA --gwas_dir ~/biroli/geighei/data/GWAS_sumstats/clean/UKB/Results_from_Cartesius/Refresh/ --gwas_pattern CLEANED.*split[0-9]$ --out_dir /home/ubuntu/biroli/geighei/data/ELSA/PGS/PRSice/split_sample --chr Chr --bp position --A1 EFFECT_ALLELE --A2 OTHER_ALLELE --pvalue PVAL &
 
 # Read Command-line arguments
 option_list = list(
