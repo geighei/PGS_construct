@@ -6,7 +6,7 @@
 ######
 ###### Runs PRSice for two p-values: 5e-8 and 1
 ###### for arbitrarily long list of target datasets and arbitrarily long list of phenotype/GWAS
-###### 
+######
 ##################################
 
 ## ----------------------------- Import Libraries, Macros, Sources -------------------------------
@@ -18,7 +18,7 @@ library(tidyverse)
 library(lubridate)
 library(optparse)
 
-## Import combining functions: creates one table out of all of the different phenotype-PGS. 
+## Import combining functions: creates one table out of all of the different phenotype-PGS.
 source("combine_prsice.R")
 
 ## Pick the p-value threshold that you need for your PGS. It's an input for the combine_prsice.R script. Must be selected from the list of pvalues in --bar-levels
@@ -28,25 +28,26 @@ pval_thresholds <- as.character(c(5e-8, 1))
 
 ## ----------------------------- Import Libraries, Macros, Sources -------------------------------
 # Example call (example is for producing all split-sample PGS in ELSA
-# nohup Rscript Run_PRSice_cmd.R --prsice ~/tools/PRSice-2/ --geno ~/biroli/geighei/data/ELSA/genomeclean/cleaned_ega-box-163_ForwardStrand_excREL --geno_name ELSA --gwas_dir ~/biroli/geighei/data/GWAS_sumstats/clean/UKB/Results_from_Cartesius/Refresh/ --gwas_pattern CLEANED.*split[0-9]$ --out_dir /home/ubuntu/biroli/geighei/data/ELSA/PGS/PRSice/split_sample --chr Chr --bp position --A1 EFFECT_ALLELE --A2 OTHER_ALLELE --pvalue PVAL &
+# $ head ~/biroli/geighei/data/GWAS_sumstats/clean/UKB/Results_from_Cartesius/bmi/split1/CLEANED.ukb_bmi_split1 # check out the column names
+# $ nohup Rscript Run_PRSice_cmd.R --prsice ~/tools/PRSice-2/ --geno ~/biroli/geighei/data/ELSA/genomeclean/cleaned_ega-box-163_ForwardStrand_excREL --geno_name ELSA --gwas_dir ~/biroli/geighei/data/GWAS_sumstats/clean/UKB/Results_from_Cartesius/Refresh/ --gwas_pattern CLEANED.*split[0-9]$ --out_dir /home/ubuntu/biroli/geighei/data/ELSA/PGS/PRSice/split_sample --chr Chr --bp position --A1 EFFECT_ALLELE --A2 OTHER_ALLELE --pvalue PVAL &
 
 # Read Command-line arguments
 option_list = list(
-  make_option(c("--prsice"), type="character", default=NULL, 
+  make_option(c("--prsice"), type="character", default=NULL,
               help="PRSice path, e.g. ~/tools/PRSice-2/", metavar="character"),
-  make_option(c("--geno"), type="character", default=NULL, 
+  make_option(c("--geno"), type="character", default=NULL,
               help="Cleaned genome data, e.g. ~/biroli/geighei/data/ELSA/genomeclean/cleaned_ega-box-163_ForwardStrand_excREL", metavar="character"),
-  make_option(c("--geno_name"), type="character", default="", 
+  make_option(c("--geno_name"), type="character", default="",
               help="Name of genome dataset, e.g. ELSA", metavar="character"),
-  make_option(c("--gwas_dir"), type="character", default=NULL, 
+  make_option(c("--gwas_dir"), type="character", default=NULL,
               help="Path to sumstats, e.g. ~/biroli/geighei/data/GWAS_sumstats/clean/rGE/", metavar="character"),
-  make_option(c("--gwas_names"), type="character", default=NULL, 
+  make_option(c("--gwas_names"), type="character", default=NULL,
               help="Sumstats files separated by comma, e.g. bmi.sumstats,ea.txt", metavar="character"),
   make_option(c("--gwas_pattern"), type="character", default=".sumstats",
               help="Regex pattern to match sumstats to generate PGS for. Defaults to all with .sumstats suffix.", metavar="character"),
-  make_option(c("--out_dir"), type="character", default=NULL, 
+  make_option(c("--out_dir"), type="character", default=NULL,
               help="Path for PRS output, e.g. ~/biroli/geighei/data/ELSA/PGS/", metavar="character"),
-  make_option(c("--combine"), action="store_true", type="character", default=FALSE, 
+  make_option(c("--combine"), action="store_true", type="character", default=FALSE,
               help="Use this flag if you want individual phenotype results combined into one file. Be careful this doesn't overwrite an existing file."),
   make_option(c("--snp"), type="character", default="SNP", help="Name of SNP column in sumstat. Default: 'SNP'.", metavar="character"),
   make_option(c("--chr"), type="character", default="CHR", help="Name of chromosome column in sumstat. Default: 'CHR'.", metavar="character"),
@@ -83,10 +84,10 @@ if (is.null(opt$out_dir)) {
   stop("Use --out_dir option to specify the path where PRSice should write results.")
 }
 
-# If GWAS names is null, we list all files ending in '.sumstats'; if not null, 
+# If GWAS names is null, we list all files ending in '.sumstats'; if not null,
 # we split the string on commas or semicolons and form in list of file names
 if (is.null(opt$gwas_names)) {
-  writeLines("Argument --gwas_names, used to specify summary statistic files to run PRSice on, not detected. 
+  writeLines("Argument --gwas_names, used to specify summary statistic files to run PRSice on, not detected.
              By default, we use --gwas_pattern argument to match all sumstats matching pattern, which defaults to all files with .sumstats ending if not provided.")
   # We find all files in the given GWAS directory recursively and filter on those matching the pattern given or default '.sumstats'
   gwas_names <- list.files(opt$gwas_dir, pattern = opt$gwas_pattern, recursive = TRUE)
@@ -106,7 +107,7 @@ if (length(prsice_exe_list) > 1) {
   prsice_exe <- prsice_exe_list[[1]]
 }
 
-# set working directory to output directory since PRSice sometimes doesn't heed the --dir argument 
+# set working directory to output directory since PRSice sometimes doesn't heed the --dir argument
 # and instead writes results to the working directory
 setwd(opt$out_dir)
 ## Get path of where this file is saved to ascertain what machine we're running it on
@@ -133,11 +134,11 @@ for(gwas_name in gwas_names){
   # split on "/" so we can isolate file name by taking last element
   gwas_path_vec <- str_split(gwas_name, pattern = "/")[[1]]
   # take file name and delete possible extension to get prefix
-  gwas_prefix <- str_replace_all(gwas_path_vec[length(gwas_path_vec)], 
+  gwas_prefix <- str_replace_all(gwas_path_vec[length(gwas_path_vec)],
                                  "\\.(sumstats|txt|csv|tsv)", "")
   output_file_name <- str_c(opt$geno_name, gwas_prefix, sep="_")
   print(output_file_name)
-  
+
   # Calling PRSice and giving it the flags that we decided above
   cmd <- paste("Rscript", str_c(opt$prsice, "PRSice.R"),
                # point to directory to write PRS output
@@ -147,18 +148,18 @@ for(gwas_name in gwas_names){
                # point to summary statistic to use (we are iterating over a list of these)
                "--base", str_c(opt$gwas_dir, "/", gwas_name),
                # point to column names corresponding to each flag, this should be standardized to fit the below values
-               "--snp", opt$snp, "--chr", opt$chr, "--bp", opt$bp, "--A1", opt$A1, "--A2", opt$A2, 
+               "--snp", opt$snp, "--chr", opt$chr, "--bp", opt$bp, "--A1", opt$A1, "--A2", opt$A2,
                "--stat", opt$stat, "--pvalue", opt$pvalue,
                # point to reference/target genome data, post-QC
                "--target", opt$geno,
                # --beta denotes continuous phenotype, --no-regress is necessary since we don't supply phenotype
-               "--beta --no-regress T --out", output_file_name, 
-               "--bar-levels 5e-8,1e-7,1e-6,1e-5,1e-4,1e-3,1e-2,1", 
+               "--beta --no-regress T --out", output_file_name,
+               "--bar-levels 5e-8,1e-7,1e-6,1e-5,1e-4,1e-3,1e-2,1",
                "--seed 112794 --fastscore --no-clump")
-  
+
   # Run command line in terminal
   system(cmd)
-  
+
   if(opt$combine) {
     output[[i]] <- cleanPRSiceOutput(str_c(output_file_name, ".all.score"), gwas_prefix, pval_thresholds)
   }
@@ -169,8 +170,8 @@ for(gwas_name in gwas_names){
 if(opt$combine){
   # Combine PRS from all phenotypes at selected p-value thresholds
   all_pheno <- output %>%
-    reduce(full_join, by = c("FID", "IID")) 
-  
+    reduce(full_join, by = c("FID", "IID"))
+
   # Write combined output to output directory defined at beginning of code
-  write_tsv(all_pheno, path = str_c(opt$out_dir, "/", today(), "_", opt$geno_name, "_Combined-PGS.txt"))  
+  write_tsv(all_pheno, path = str_c(opt$out_dir, "/", today(), "_", opt$geno_name, "_Combined-PGS.txt"))
 }
