@@ -154,7 +154,7 @@ for(gwas_name in gwas_names){
                "--target", opt$geno,
                # --beta denotes continuous phenotype, --no-regress is necessary since we don't supply phenotype
                "--beta --no-regress T --out", output_file_name,
-               "--bar-levels 5e-8,1e-7,1e-6,1e-5,1e-4,1e-3,1e-2,1",
+               "--bar-levels 1",  # "--bar-levels 5e-8,1e-7,1e-6,1e-5,1e-4,1e-3,1e-2,1",
                "--seed 112794 --fastscore --no-clump")
 
   # Run command line in terminal

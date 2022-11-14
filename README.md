@@ -13,6 +13,7 @@ is an R wrapper to construt a simple, plain vanilla PGS (weighted average of all
 
 
 Example call (example produces several PGS scores, one for every GWAS summary statistics ending in *.sumstat in the rGE folder, for the MCS data
+
 $ head ~/biroli/geighei/data/GWAS_sumstats/clean/rGE/educYears.sumstats      #check the column names
 $  nohup Rscript Run_PRSice_cmd.R
          --prsice ~/tools/PRSice-2/
