@@ -97,7 +97,8 @@ if (is.null(opt$gwas_names)) {
 
 # Ascertain the PRSice executable from the path provided with the --prsice argument.
 # Note: I may need to add the PRSice executable used on Windows.. I'm not sure at the moment what that's called as I don't ever use Windows
-prsice_exe_list <- list.files(opt$prsice, "mac|linux")
+# PBNote: I added the Windows extension, but it cannot work in windonws, I get the error message"Error: Cannot recognize file structure. This program is set up for Linux and OSX" 
+prsice_exe_list <- list.files(opt$prsice, "mac|linux|win64|")
 if (length(prsice_exe_list) > 1) {
   prsice_exe <- prsice_exe_list[[1]]
   warning("More than one PRSice executable detected. Using ", prsice_exe, ".")
